@@ -7,7 +7,6 @@ import {
     EarlyAccessFeatureResponse,
     Properties,
     JsonType,
-    Compression,
     EarlyAccessFeature,
     RemoteConfigFeatureFlagCallback,
     EarlyAccessFeatureStage,
@@ -21,6 +20,7 @@ import {
 } from './types'
 import type { PostHog } from './posthog-core'
 import { MutableFeatureFlagsConfigSource, type FeatureFlagsConfigSource } from './feature-flags-config'
+import { FeatureFlagsExtension } from './extension-tokens'
 
 import {
     PERSISTENCE_EARLY_ACCESS_FEATURES,
@@ -38,6 +38,7 @@ import {
     PERSISTENCE_FEATURE_FLAG_PAYLOADS,
     PERSISTENCE_OVERRIDE_FEATURE_FLAGS,
     PERSISTENCE_OVERRIDE_FEATURE_FLAG_PAYLOADS,
+    DOM_EVENT_VISIBILITYCHANGE,
 } from './constants'
 
 import {
@@ -50,7 +51,8 @@ import {
 } from '@posthog/core'
 import { createLogger } from '@posthog/browser-common/utils/logger'
 import { getTimezone } from '@posthog/browser-common/utils/event-utils'
-import { window } from '@posthog/browser-common/utils/globals'
+import { document, window } from '@posthog/browser-common/utils/globals'
+import { continueWith } from '@posthog/browser-common/utils/promise-utils'
 import {
     isStatusZeroFailureCircuitBreakerTripped,
     updateStatusZeroFailureCount,
@@ -64,17 +66,6 @@ const FLAG_TIMEOUT_MSG = '" failed. Feature flags didn\'t load in time.'
 // deterministically blocked (ad blocker, CORS, extension). Stop periodic /flags
 // refreshes after this many consecutive failures until connectivity changes.
 const MAX_CONSECUTIVE_FLAGS_STATUS_ZERO_FAILURES = 3
-
-type MaybePromise<T> = T | Promise<T>
-
-/**
- * Preserve browser-v1's same-tick behavior when a host operation is synchronous while still chaining async hosts.
- * Use this only on paths that were historically synchronous, not after requests or other inherently async work.
- */
-const continueWith = <T, R>(result: MaybePromise<T>, callback: (value: T) => MaybePromise<R>): MaybePromise<R> => {
-    const promise = result as Promise<T>
-    return promise?.then ? promise.then(callback) : callback(result as T)
-}
 
 type FeatureFlagsState = {
     [PERSISTENCE_ACTIVE_FEATURE_FLAGS]?: string[]
@@ -259,7 +250,7 @@ export const QuotaLimitedResource = {
 export type QuotaLimitedResource = (typeof QuotaLimitedResource)[keyof typeof QuotaLimitedResource]
 
 export class PostHogFeatureFlags implements Extension {
-    readonly name = 'featureFlags'
+    readonly name = FeatureFlagsExtension
     _override_warning: boolean = false
     featureFlagEventHandlers: FeatureFlagsCallback[] = []
     $anon_distinct_id: string | undefined
@@ -279,6 +270,9 @@ export class PostHogFeatureFlags implements Extension {
     private _flagsLoadedFromRemote: boolean = false
     private _staleCacheRefreshTriggered: boolean = false
     private _consecutiveStatusZeroFailures: number = 0
+    private _refreshInterval?: ReturnType<typeof setInterval>
+    private _refreshIntervalMs?: number
+    private _lastRefreshAt?: number
     private readonly _configSource: FeatureFlagsConfigSource
     private readonly _mutableConfigSource?: MutableFeatureFlagsConfigSource
 
@@ -298,6 +292,9 @@ export class PostHogFeatureFlags implements Extension {
 
     updateConfig(config: PostHogConfig, remoteRequestsDisabled: boolean): void {
         this._mutableConfigSource?.update(config, remoteRequestsDisabled)
+        if (this._client) {
+            this._syncAutomaticRefresh()
+        }
     }
 
     setup(client: Client): void | Promise<void> {
@@ -320,6 +317,7 @@ export class PostHogFeatureFlags implements Extension {
         if (window) {
             addEventListener(window, 'online', this._onOnline)
         }
+        this._syncAutomaticRefresh()
         this._dynamicProperties = client.registerDynamicEventProperties(() =>
             this._isCacheStale() ? this._baseEventProperties : this._eventPropertiesWithFlagValues
         )
@@ -335,11 +333,84 @@ export class PostHogFeatureFlags implements Extension {
         }
     }
 
+    private _refreshIfDue = (): void => {
+        const refreshIntervalMs = this._refreshIntervalMs
+        if (
+            isUndefined(refreshIntervalMs) ||
+            this._config.remoteRequestsDisabled ||
+            !document ||
+            document.visibilityState === 'hidden' ||
+            Date.now() - (this._lastRefreshAt ?? 0) < refreshIntervalMs
+        ) {
+            return
+        }
+
+        this.reloadFeatureFlags()
+        this._scheduleNextRefresh()
+    }
+
+    private _onVisibilityChange = (): void => {
+        if (document?.visibilityState === 'visible') {
+            this._refreshIfDue()
+        }
+    }
+
+    private _syncAutomaticRefresh(): void {
+        const configuredIntervalMs = this._config.refreshIntervalMs
+        const refreshIntervalMs =
+            !this._config.remoteRequestsDisabled &&
+            document &&
+            !isUndefined(configuredIntervalMs) &&
+            configuredIntervalMs > 0
+                ? configuredIntervalMs
+                : undefined
+        if (refreshIntervalMs === this._refreshIntervalMs) {
+            return
+        }
+
+        this._stopAutomaticRefresh()
+        if (isUndefined(refreshIntervalMs)) {
+            return
+        }
+
+        this._refreshIntervalMs = refreshIntervalMs
+        this._scheduleNextRefresh()
+        if (document?.addEventListener) {
+            addEventListener(document, DOM_EVENT_VISIBILITYCHANGE, this._onVisibilityChange)
+        }
+    }
+
+    private _scheduleNextRefresh(): void {
+        if (isUndefined(this._refreshIntervalMs)) {
+            return
+        }
+        if (!isUndefined(this._refreshInterval)) {
+            clearInterval(this._refreshInterval)
+        }
+        this._lastRefreshAt = Date.now()
+        this._refreshInterval = setInterval(this._refreshIfDue, this._refreshIntervalMs)
+    }
+
+    private _stopAutomaticRefresh(): void {
+        if (!isUndefined(this._refreshInterval)) {
+            clearInterval(this._refreshInterval)
+            this._refreshInterval = undefined
+            document?.removeEventListener?.(DOM_EVENT_VISIBILITYCHANGE, this._onVisibilityChange)
+        }
+        this._refreshIntervalMs = undefined
+        this._lastRefreshAt = undefined
+    }
+
     destroy(): void {
-        window?.removeEventListener('online', this._onOnline)
+        this._dispose()
     }
 
     dispose(): void {
+        this._dispose()
+    }
+
+    private _dispose(): void {
+        this._stopAutomaticRefresh()
         this._requestGeneration++
         this._additionalReloadRequested = false
         this._initializingClient = undefined
@@ -848,7 +919,7 @@ export class PostHogFeatureFlags implements Extension {
                     target: 'flags',
                     method: 'POST',
                     body: data,
-                    compression: this._config.compression === 'base64' ? Compression.Base64 : undefined,
+                    compression: this._config.compression,
                     sentAt: 'body',
                     timeoutMs: this._config.requestTimeoutMs,
                 })
@@ -1146,7 +1217,7 @@ export class PostHogFeatureFlags implements Extension {
                 target: 'flags',
                 method: 'POST',
                 body: data,
-                compression: this._config.compression === 'base64' ? Compression.Base64 : undefined,
+                compression: this._config.compression,
                 sentAt: 'body',
                 timeoutMs: this._config.requestTimeoutMs,
             })

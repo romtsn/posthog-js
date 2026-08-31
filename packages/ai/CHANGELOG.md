@@ -1,5 +1,28 @@
 # posthog-ai
 
+## 8.9.0
+
+### Minor Changes
+
+- [#4556](https://github.com/PostHog/posthog-js/pull/4556) [`a47b232`](https://github.com/PostHog/posthog-js/commit/a47b2326860b986915945d88b6a7689968617740) Thanks [@gouveags](https://github.com/gouveags)! - Add LangChain v1 agent middleware for AI observability.
+  (2026-08-27)
+
+### Patch Changes
+
+- Updated dependencies [[`7902e44`](https://github.com/PostHog/posthog-js/commit/7902e445d0a66b93bd4c7febce04cdf8836ea86b), [`e899b1c`](https://github.com/PostHog/posthog-js/commit/e899b1cdc6fbe748b8adc59e3b6bebe24f3b0524)]:
+  - @posthog/core@1.48.12
+  - posthog-node@5.51.3
+
+## 8.8.1
+
+### Patch Changes
+
+- [#4609](https://github.com/PostHog/posthog-js/pull/4609) [`da5d0ee`](https://github.com/PostHog/posthog-js/commit/da5d0ee5c948d4038a0d32470db35a3df02d69be) Thanks [@marandaneto](https://github.com/marandaneto)! - Share OpenAI-compatible telemetry reducers across OpenAI and Azure and align Azure usage, tools, stop reason, web search, background output, and sanitization telemetry.
+  (2026-08-25)
+- Updated dependencies [[`1faeb74`](https://github.com/PostHog/posthog-js/commit/1faeb749974a0c49ad86a6cb68ac4cd5f6414084), [`930de19`](https://github.com/PostHog/posthog-js/commit/930de1960872cb73d85bbeb71d8d5159d1740c74), [`d4eee8f`](https://github.com/PostHog/posthog-js/commit/d4eee8fe12de2caab4e91d6a0ada25ee6b822e12)]:
+  - posthog-node@5.51.2
+  - @posthog/core@1.48.11
+
 ## 8.8.0
 
 ### Minor Changes
