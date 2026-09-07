@@ -72,17 +72,22 @@ const anthropicMessage = {
 
 const posthogClient = (): PostHog =>
   ({
-    capture: jest.fn(),
-    captureImmediate: jest.fn(),
+    capture: vi.fn(),
+    captureImmediate: vi.fn(),
     privacy_mode: false,
   }) as unknown as PostHog
 
-const jsonResponse = (body: unknown, requestIDHeader = 'x-request-id'): Response =>
+const jsonResponse = (
+  body: unknown,
+  requestIDHeader = 'x-request-id',
+  additionalHeaders: Record<string, string> = {}
+): Response =>
   new Response(JSON.stringify(body), {
     status: 200,
     headers: {
       'content-type': 'application/json',
       [requestIDHeader]: 'req_provider_promise',
+      ...additionalHeaders,
     },
   })
 
@@ -117,7 +122,7 @@ const requestURL = (request: RequestInfo | URL): string => (request instanceof R
 
 describe('provider promise compatibility with real SDK resources', () => {
   test('OpenAI chat.completions.parse composes through the wrapped create promise', async () => {
-    const fetch = jest.fn(async () => jsonResponse(chatCompletion))
+    const fetch = vi.fn(async () => jsonResponse(chatCompletion))
     const posthog = posthogClient()
     const client = new PostHogOpenAI({ apiKey: 'test', posthog, fetch })
 
@@ -142,7 +147,7 @@ describe('provider promise compatibility with real SDK resources', () => {
 
   test('OpenAI responses.stream routes through the wrapped create method', async () => {
     let providerBody: Record<string, unknown> | undefined
-    const fetch = jest.fn(async (request: RequestInfo | URL, init?: RequestInit) => {
+    const fetch = vi.fn(async (request: RequestInfo | URL, init?: RequestInit) => {
       const body = request instanceof Request ? await request.clone().text() : String(init?.body)
       providerBody = JSON.parse(body)
       return eventStreamResponse([
@@ -182,7 +187,7 @@ describe('provider promise compatibility with real SDK resources', () => {
     expect(providerBody).not.toHaveProperty('posthogDistinctId')
     expect(providerBody).not.toHaveProperty('posthogTraceId')
     expect(posthog.capture).toHaveBeenCalledTimes(1)
-    expect((posthog.capture as jest.Mock).mock.calls[0][0]).toMatchObject({
+    expect((posthog.capture as vi.Mock).mock.calls[0][0]).toMatchObject({
       distinctId: 'stream-user',
       event: '$ai_generation',
       properties: {
@@ -193,7 +198,7 @@ describe('provider promise compatibility with real SDK resources', () => {
   })
 
   test('Azure chat and responses parse compose through wrapped provider promises', async () => {
-    const fetch = jest.fn(async (request: RequestInfo | URL) =>
+    const fetch = vi.fn(async (request: RequestInfo | URL) =>
       jsonResponse(requestURL(request).includes('/responses') ? responsesResult : chatCompletion)
     )
     const posthog = posthogClient()
@@ -238,7 +243,7 @@ describe('provider promise compatibility with real SDK resources', () => {
   })
 
   test('Azure create promises retain raw-response helpers and transformed data', async () => {
-    const fetch = jest.fn(async (request: RequestInfo | URL) =>
+    const fetch = vi.fn(async (request: RequestInfo | URL) =>
       jsonResponse(requestURL(request).includes('/responses') ? responsesResult : chatCompletion)
     )
     const client = new PostHogAzureOpenAI({
@@ -264,7 +269,9 @@ describe('provider promise compatibility with real SDK resources', () => {
   })
 
   test('Anthropic create promises retain raw-response helpers and transformed data', async () => {
-    const fetch = jest.fn(async () => jsonResponse(anthropicMessage, 'request-id'))
+    const fetch = vi.fn(async () =>
+      jsonResponse(anthropicMessage, 'request-id', { 'anthropic-workspace-id': 'wrkspc_provider_promise' })
+    )
     const client = new PostHogAnthropic({ apiKey: 'test', posthog: posthogClient(), fetch })
 
     const promise = client.messages.create({
@@ -272,18 +279,25 @@ describe('provider promise compatibility with real SDK resources', () => {
       messages: [{ role: 'user', content: 'Hello' }],
       max_tokens: 32,
     })
+    const transformedPromise = promise._thenUnwrap(() => ({ transformed: true }))
 
     expect(typeof promise.asResponse).toBe('function')
     expect(typeof promise.withResponse).toBe('function')
     const rawResponse = await promise.asResponse()
-    const { data, request_id } = await promise.withResponse()
+    const { data, request_id, workspace_id } = await promise.withResponse()
+    const transformed = await transformedPromise
 
     expect(rawResponse.status).toBe(200)
     expect(rawResponse.headers.get('request-id')).toBe('req_provider_promise')
     expect(rawResponse.bodyUsed).toBe(true)
     await expect(rawResponse.json()).rejects.toThrow()
     expect(data.id).toBe(anthropicMessage.id)
+    expect((data as typeof data & { _workspace_id?: string })._workspace_id).toBe('wrkspc_provider_promise')
+    expect(Object.keys(data)).not.toContain('_workspace_id')
     expect(request_id).toBe('req_provider_promise')
+    expect(workspace_id).toBe('wrkspc_provider_promise')
+    expect(transformed._workspace_id).toBe('wrkspc_provider_promise')
+    expect(Object.keys(transformed)).not.toContain('_workspace_id')
     expect(fetch).toHaveBeenCalledTimes(1)
   })
 })

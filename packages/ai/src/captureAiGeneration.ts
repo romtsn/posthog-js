@@ -29,7 +29,11 @@ export interface CaptureAiGenerationOptions {
   /** Maps to `$ai_model_parameters` (temperature, max_tokens, top_p, …). */
   modelParameters?: Record<string, unknown>
 
-  baseURL?: string
+  /**
+   * `null` explicitly signals no base URL and omits `$ai_base_url` from the event.
+   * `undefined`/omitted keeps the existing `''` default for backward compatibility.
+   */
+  baseURL?: string | null
   httpStatus?: number
   /** Wall-clock latency in seconds. */
   latency?: number
@@ -78,6 +82,8 @@ export interface CaptureAiGenerationOptions {
 
   /** Awaits delivery instead of batching. Useful in serverless environments. */
   captureImmediate?: boolean
+  /** Invoked when generation telemetry cannot be captured. Errors thrown by this callback are ignored. */
+  onError?: (error: unknown) => void
 }
 
 /**
@@ -151,14 +157,21 @@ export const captureAiGeneration = async (client: PostHog, options: CaptureAiGen
     }
     httpStatus = httpStatus ?? 200
 
-    let costOverrideData: Record<string, number> = {}
+    // A configured price applies only to a count the provider reported, so a call with no
+    // reported usage sends no cost instead of asserting $0. $ai_total_cost_usd sums the sides
+    // that were priced, which makes it the cost of the known side alone when the other side
+    // went unreported: a lower bound on the true total, not an assertion of it.
+    const costOverrideData: Record<string, number> = {}
     if (options.costOverride) {
-      const inputCostUSD = (options.costOverride.inputCost ?? 0) * (usage.inputTokens ?? 0)
-      const outputCostUSD = (options.costOverride.outputCost ?? 0) * (usage.outputTokens ?? 0)
-      costOverrideData = {
-        $ai_input_cost_usd: inputCostUSD,
-        $ai_output_cost_usd: outputCostUSD,
-        $ai_total_cost_usd: inputCostUSD + outputCostUSD,
+      if (usage.inputTokens !== undefined) {
+        costOverrideData.$ai_input_cost_usd = (options.costOverride.inputCost ?? 0) * usage.inputTokens
+      }
+      if (usage.outputTokens !== undefined) {
+        costOverrideData.$ai_output_cost_usd = (options.costOverride.outputCost ?? 0) * usage.outputTokens
+      }
+      if (Object.keys(costOverrideData).length > 0) {
+        costOverrideData.$ai_total_cost_usd =
+          (costOverrideData.$ai_input_cost_usd ?? 0) + (costOverrideData.$ai_output_cost_usd ?? 0)
       }
     }
 
@@ -195,13 +208,13 @@ export const captureAiGeneration = async (client: PostHog, options: CaptureAiGen
       $ai_input: safeInput,
       $ai_output_choices: safeOutput,
       $ai_http_status: httpStatus,
-      $ai_input_tokens: usage.inputTokens ?? 0,
+      ...(usage.inputTokens !== undefined ? { $ai_input_tokens: usage.inputTokens } : {}),
       ...(usage.outputTokens !== undefined ? { $ai_output_tokens: usage.outputTokens } : {}),
       ...additionalTokenValues,
       ...(options.latency !== undefined ? { $ai_latency: options.latency } : {}),
       ...(options.timeToFirstToken !== undefined ? { $ai_time_to_first_token: options.timeToFirstToken } : {}),
       $ai_trace_id: traceId,
-      $ai_base_url: options.baseURL ?? '',
+      ...(options.baseURL === null ? {} : { $ai_base_url: options.baseURL ?? '' }),
       ...options.properties,
       $ai_tokens_source: getTokensSource(options.properties),
       ...(options.distinctId ? {} : { $process_person_profile: false }),
@@ -229,6 +242,11 @@ export const captureAiGeneration = async (client: PostHog, options: CaptureAiGen
     }
   } catch (error) {
     // Telemetry failures must never affect the instrumented provider call.
+    try {
+      options.onError?.(error)
+    } catch {
+      // Error reporting must not affect the instrumented provider call either.
+    }
     console.warn('[PostHog AI] Failed to capture generation telemetry:', error)
   }
 }

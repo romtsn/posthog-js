@@ -1,7 +1,7 @@
 import type OpenAI from 'openai'
 import type { FormattedContent, FormattedMessage, TokenUsage } from '../types'
 import { calculateWebSearchCount } from '../utils'
-import { extractCacheWriteTokens, isResponseTokenChunk, isTerminalResponse } from './utils'
+import { extractCacheWriteTokens, isResponseTokenChunk, isTerminalResponse, responsesStopReason } from './utils'
 
 export interface OpenAIChatStreamResult {
   output: FormattedMessage[]
@@ -23,7 +23,7 @@ export class OpenAIChatStreamAccumulator {
   private serviceTier?: string
   private firstTokenTime?: number
   private stopReason?: string
-  private usage: TokenUsage = { inputTokens: 0, outputTokens: 0, webSearchCount: 0 }
+  private usage: TokenUsage = { webSearchCount: 0 }
   private readonly toolCalls = new Map<number, { id: string; name: string; arguments: string }>()
 
   consume(chunk: OpenAI.ChatCompletionChunk, receivedAt = Date.now()): void {
@@ -134,7 +134,7 @@ export class OpenAIResponsesStreamAccumulator {
   private serviceTier?: string
   private firstTokenTime?: number
   private stopReason?: string
-  private usage: TokenUsage = { inputTokens: 0, outputTokens: 0, webSearchCount: 0 }
+  private usage: TokenUsage = { webSearchCount: 0 }
   private terminalResponse?: OpenAI.Responses.Response
 
   consume(event: OpenAI.Responses.ResponseStreamEvent, receivedAt = Date.now()): void {
@@ -172,7 +172,7 @@ export class OpenAIResponsesStreamAccumulator {
     if (isTerminalResponse(response)) {
       this.terminalResponse = response
       this.output = response.output ?? []
-      this.stopReason = response.status
+      this.stopReason = responsesStopReason(response)
     }
   }
 

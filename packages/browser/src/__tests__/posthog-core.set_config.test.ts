@@ -3,15 +3,15 @@ import { uuidv7 } from '@posthog/browser-common/utils/uuidv7'
 import Config from '../config'
 
 describe('posthog.set_config', () => {
-    const mockURL = jest.fn()
-    const mockReferrer = jest.fn()
+    const mockURL = vi.fn()
+    const mockReferrer = vi.fn()
     const originalWindowLocation = window.location
 
     beforeEach(() => {
         mockReferrer.mockReturnValue('https://referrer.com')
         mockURL.mockReturnValue('https://example.com')
-        console.error = jest.fn()
-        console.log = jest.fn()
+        console.error = vi.fn()
+        console.log = vi.fn()
 
         // Mock getters using Object.defineProperty
         Object.defineProperty(document, 'URL', {
@@ -186,7 +186,7 @@ describe('posthog.set_config', () => {
         it('should apply capture_pageview updates to history autocapture', () => {
             const token = uuidv7()
             const posthog = defaultPostHog().init(token, { capture_pageview: false }, token)!
-            const startIfEnabledOrStop = jest.spyOn(posthog.historyAutocapture!, 'startIfEnabledOrStop')
+            const startIfEnabledOrStop = vi.spyOn(posthog.historyAutocapture!, 'startIfEnabledOrStop')
 
             posthog.set_config({ capture_pageview: { hash: true } })
 
@@ -213,7 +213,13 @@ describe('posthog.set_config', () => {
             'should keep session persistence same as persistence for $persistenceType',
             ({ persistenceType }) => {
                 const token = uuidv7()
-                const posthog = defaultPostHog().init(token, { persistence: 'cookie' }, token)!
+                // A stable bootstrap.distinctID suppresses the volatile-persistence warning that switching to
+                // sessionStorage/memory now emits, keeping this test focused on the sessionPersistence identity.
+                const posthog = defaultPostHog().init(
+                    token,
+                    { persistence: 'cookie', bootstrap: { distinctID: token } },
+                    token
+                )!
 
                 posthog.set_config({ persistence: persistenceType })
 

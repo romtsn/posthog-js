@@ -1,5 +1,6 @@
 import {
     calculateTooltipPosition,
+    getStepHtml,
     getSpotlightStyle,
     renderTipTapContent,
     normalizeUrl,
@@ -31,7 +32,7 @@ describe('getProductTourStylesheet', () => {
         {
             name: 'runs the stylesheet through prepare_external_dependency_stylesheet',
             setup: () => {
-                const prepareExternalDependencyStylesheet = jest.fn((stylesheet: HTMLStyleElement) => {
+                const prepareExternalDependencyStylesheet = vi.fn((stylesheet: HTMLStyleElement) => {
                     stylesheet.setAttribute('nonce', 'test-nonce')
                     return stylesheet
                 })
@@ -49,7 +50,7 @@ describe('getProductTourStylesheet', () => {
         {
             name: 'returns null when prepare_external_dependency_stylesheet returns null',
             setup: () => {
-                const prepareExternalDependencyStylesheet = jest.fn(() => null)
+                const prepareExternalDependencyStylesheet = vi.fn(() => null)
                 return {
                     posthog: {
                         config: { prepare_external_dependency_stylesheet: prepareExternalDependencyStylesheet },
@@ -64,7 +65,7 @@ describe('getProductTourStylesheet', () => {
     ])('$name', ({ setup, expectedHookCalls, expectedNonce, expectedStylesheet }) => {
         const { posthog, prepareExternalDependencyStylesheet } = setup() as {
             posthog?: PostHog
-            prepareExternalDependencyStylesheet?: jest.Mock
+            prepareExternalDependencyStylesheet?: vi.Mock
         }
 
         const stylesheet = getProductTourStylesheet(posthog)
@@ -240,6 +241,24 @@ describe('renderTipTapContent', () => {
             ],
         }
         expect(renderTipTapContent(content)).toBe('<p>First paragraph</p><p>Second paragraph</p>')
+    })
+})
+
+describe('getStepHtml', () => {
+    it('sanitizes HTML rendered from legacy TipTap content', () => {
+        const step = {
+            content: {
+                type: 'heading',
+                attrs: { level: '1><img src=x onerror=alert(document.cookie)><h1' },
+                content: [{ type: 'text', text: 'Test' }],
+            },
+        } as ProductTourStep
+
+        const html = getStepHtml(step)
+
+        expect(html).toContain('Test')
+        expect(html).not.toContain('onerror')
+        expect(html).not.toContain('alert')
     })
 })
 

@@ -1,4 +1,6 @@
 import type { recordOptions, rrwebRecord as rrwebRecordType } from '../types/rrweb'
+import { RECORDING_REMOTE_CONFIG_TTL_MS } from '../../../constants'
+export { RECORDING_REMOTE_CONFIG_TTL_MS } from '../../../constants'
 import type { SnapshotCost } from '@posthog/rrweb-record'
 import {
     type customEvent,
@@ -127,7 +129,6 @@ function networkTimingFromConfig(config: boolean | PerformanceCaptureConfig | un
 }
 
 export const RECORDING_IDLE_THRESHOLD_MS = FIVE_MINUTES
-export const RECORDING_REMOTE_CONFIG_TTL_MS = ONE_HOUR
 export const RECORDING_MAX_EVENT_SIZE = ONE_KB * ONE_KB * 0.9 // ~1mb (with some wiggle room)
 export const RECORDING_BUFFER_TIMEOUT = 2000 // 2 seconds
 export const SESSION_RECORDING_BATCH_KEY = 'recordings'
@@ -345,7 +346,7 @@ function buildCompressedIncrementalEvent(
 ): compressedEventWithTime {
     // reshapes rrweb incremental `data` into its compressed string-field variant — the
     // compiler cannot relate the incoming union member to the matching compressed member
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    // oxlint-disable-next-line typescript/consistent-type-assertions
     return {
         ...event,
         cv: '2024-10' as const,
@@ -930,7 +931,7 @@ export class LazyLoadedSessionRecording implements LazyLoadedSessionRecordingInt
 
     private _scheduleJsonLdScan(force = false): void {
         // Run the scan after the current rrweb event updates the JSON-LD capture state.
-        // eslint-disable-next-line compat/compat
+        // oxlint-disable-next-line compat/compat
         Promise.resolve().then(() => this._jsonLdCapture?.scan(force))
     }
 
@@ -941,7 +942,7 @@ export class LazyLoadedSessionRecording implements LazyLoadedSessionRecordingInt
             }
             // Preserve the previous normalization behavior for this fallback (e.g. https://test.com -> https://test.com/)
             // while still applying query masking. This path was already hashless before disable_capture_url_hashes.
-            // eslint-disable-next-line compat/compat
+            // oxlint-disable-next-line compat/compat
             const url = new URL(window.location.href)
             const currentUrl = this._maskReplayUrl(url.origin + url.pathname + url.search)
             if (this._lastHref !== currentUrl) {
@@ -1130,7 +1131,8 @@ export class LazyLoadedSessionRecording implements LazyLoadedSessionRecordingInt
 
         // Only check TTL if recording hasn't started yet
         // Once started, trust the config until a hard page load
-        if (!this.isStarted) {
+        // A rotation restart is briefly not-started between stop() and start(); it keeps that trust
+        if (!this.isStarted && !this._isRestartingForSessionIdChange) {
             // default to now so that configs persisted by older SDK versions
             // (which never set cache_timestamp) are treated as fresh
             const cacheTimestamp = parsedConfig.cache_timestamp ?? Date.now()
@@ -1522,7 +1524,10 @@ export class LazyLoadedSessionRecording implements LazyLoadedSessionRecordingInt
         // flush below, or they are cleared unshipped.
         this._stopRecordingProducers()
 
-        if (this._stopAfterCompressionQueueDrains()) {
+        // a rotation's synchronous start() would invalidate a deferred drain, destroying the old session's tail
+        if (this._isRestartingForSessionIdChange) {
+            this._drainCompressionQueueSync()
+        } else if (this._stopAfterCompressionQueueDrains()) {
             return
         }
 
@@ -1534,22 +1539,40 @@ export class LazyLoadedSessionRecording implements LazyLoadedSessionRecordingInt
         logger.info('stopped')
     }
 
+    flushBeforeIdentityReset(): void {
+        // a deferred stop has already torn rrweb down but still holds the tail for a later flush
+        if (!this.isStarted && !this._isStoppingAfterCompression) {
+            return
+        }
+        this._drainCompressionQueueSync()
+        this._flushBuffer()
+    }
+
     // ordering matters: the hold is set after stop() (so the stop discards or ships the
     // old epoch per its own flag) and after start() (whose fresh-start reset would
     // otherwise clobber it); no flush can run synchronously in between
+    private _isRestartingForSessionIdChange = false
+
     private _restartForSessionIdChange(holdNextEpoch: boolean) {
-        this.stop()
-        // cost metrics are per-session; reset them only after the old recorder has
-        // stopped (its teardown flush still records deferred stylesheet work, which
-        // belongs to the old session) and before the new one takes its first snapshot
-        this._slowestFullSnapshot = undefined
-        this._lastSeenSnapshotCost = undefined
-        // the throttler drop counts are per-session too, so the new session starts at zero
-        this._throttledMutationsDropped = 0
-        this._oversizedMutationsDropped = 0
-        this._oversizedMutationBytesDropped = 0
-        getRRWeb()?.resetSnapshotCostState?.()
-        this.start('session_id_changed')
+        this._isRestartingForSessionIdChange = true
+        // the new epoch's idle clock starts now, before teardown or the restart snapshot can emit
+        this._lastActivityTimestamp = Date.now()
+        try {
+            this.stop()
+            // cost metrics are per-session; reset them only after the old recorder has
+            // stopped (its teardown flush still records deferred stylesheet work, which
+            // belongs to the old session) and before the new one takes its first snapshot
+            this._slowestFullSnapshot = undefined
+            this._lastSeenSnapshotCost = undefined
+            // the throttler drop counts are per-session too, so the new session starts at zero
+            this._throttledMutationsDropped = 0
+            this._oversizedMutationsDropped = 0
+            this._oversizedMutationBytesDropped = 0
+            getRRWeb()?.resetSnapshotCostState?.()
+            this.start('session_id_changed')
+        } finally {
+            this._isRestartingForSessionIdChange = false
+        }
         this._holdFlushUntilInteraction = holdNextEpoch
         this._heldEpochShipsOnUnload = false
     }
@@ -1573,7 +1596,13 @@ export class LazyLoadedSessionRecording implements LazyLoadedSessionRecordingInt
         this._scheduleFlushBuffer()
     }
 
-    discard() {
+    discard({ discardProducerEvents = false }: { discardProducerEvents?: boolean } = {}) {
+        if (discardProducerEvents) {
+            // rrweb teardown can synchronously emit deferred stylesheet mutations.
+            // Clear first so those emissions cannot flush existing data, then clear them below too.
+            this._clearBuffer()
+            this._stopRecordingProducers()
+        }
         this._clearBuffer()
         this._teardown()
         logger.info('discarded')
@@ -1694,11 +1723,21 @@ export class LazyLoadedSessionRecording implements LazyLoadedSessionRecordingInt
 
     private _processQueuedCompressionEventSync(queuedEvent: QueuedCompressionEvent) {
         try {
-            const { event: eventToSend, size } = queuedEvent.compressionEnabled
-                ? compressEventSync(queuedEvent.event)
-                : { event: queuedEvent.event, size: estimateSize(queuedEvent.event) }
-
-            this._captureQueuedCompressionEvent(queuedEvent, eventToSend, size)
+            let eventToSend: eventWithTime | compressedEventWithTime = queuedEvent.event
+            let size = estimateSize(queuedEvent.event)
+            if (queuedEvent.compressionEnabled) {
+                try {
+                    ;({ event: eventToSend, size } = compressEventSync(queuedEvent.event))
+                } catch (e) {
+                    logger.error('could not process queued compression event - will use uncompressed event', e)
+                }
+            }
+            try {
+                this._captureQueuedCompressionEvent(queuedEvent, eventToSend, size)
+            } catch (e) {
+                // the async path swallows this too, a throw here would abort the rotation restart
+                logger.error('could not capture queued compression event', e)
+            }
         } finally {
             this._finishQueuedCompressionEvent(queuedEvent)
         }
@@ -2029,7 +2068,7 @@ export class LazyLoadedSessionRecording implements LazyLoadedSessionRecordingInt
             // not convertToURL: it resolves invalid input (e.g. a masking fn returning "REDACTED")
             // against the current page and would return the real hostname we're trying to mask.
             // new URL throws instead, so bad input falls through to the catch and we omit the property.
-            // eslint-disable-next-line compat/compat
+            // oxlint-disable-next-line compat/compat
             return new URL(maskedUrl).hostname || undefined
         } catch {
             return undefined
@@ -2152,16 +2191,21 @@ export class LazyLoadedSessionRecording implements LazyLoadedSessionRecordingInt
             const snapshotHostname = this._currentMaskedHostname()
             const snapshotEvents = splitBuffer(validatedBuffer)
             snapshotEvents.forEach((snapshotBuffer) => {
-                this._flushedSizeTracker?.trackSize(snapshotBuffer.sessionId, snapshotBuffer.size)
-                this._captureSnapshot({
-                    $snapshot_bytes: snapshotBuffer.size,
-                    $snapshot_data: snapshotBuffer.data,
-                    $session_id: snapshotBuffer.sessionId,
-                    $window_id: snapshotBuffer.windowId,
-                    $lib: Config.LIB_NAME,
-                    $lib_version: Config.LIB_VERSION,
-                    $snapshot_host: snapshotHostname,
-                })
+                try {
+                    this._flushedSizeTracker?.trackSize(snapshotBuffer.sessionId, snapshotBuffer.size)
+                    this._captureSnapshot({
+                        $snapshot_bytes: snapshotBuffer.size,
+                        $snapshot_data: snapshotBuffer.data,
+                        $session_id: snapshotBuffer.sessionId,
+                        $window_id: snapshotBuffer.windowId,
+                        $lib: Config.LIB_NAME,
+                        $lib_version: Config.LIB_VERSION,
+                        $snapshot_host: snapshotHostname,
+                    })
+                } catch (e) {
+                    // one chunk that cannot be captured must not drop the chunks after it
+                    logger.warn('could not capture snapshot chunk - skipping it', e)
+                }
             })
 
             // Notify strategy that initial flush is complete (performance optimization)
@@ -2632,7 +2676,7 @@ export class LazyLoadedSessionRecording implements LazyLoadedSessionRecordingInt
                     }
                     sessionRecordingOptions.sampling = sampling
                 } else {
-                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                    // oxlint-disable-next-line typescript/ban-ts-comment
                     // @ts-ignore
                     sessionRecordingOptions[key] = value
                 }

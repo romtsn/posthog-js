@@ -17,35 +17,42 @@ This is a pnpm monorepo containing multiple PostHog JavaScript SDKs and developm
 - `./playground` - Projects to test packages locally during development
 - `./examples` - Simple example projects demonstrating how to install and use our SDKs
 - `./target` - Generated tarballs for SDK packages (created by `pnpm package`)
-- `./tooling` - Shared development packages (ESLint plugin, Rollup utils, TSConfig base)
+- `./tooling` - Shared development packages (Oxlint plugin, Rollup utils, TSConfig base)
 - `./.github` - CI/CD workflows and custom GitHub Actions
 
 ## SDK Packages
 
 The repository contains the following SDK packages in `./packages/`:
 
-| Package          | Name                     | Description                                     |
-| ---------------- | ------------------------ | ----------------------------------------------- |
-| `core/`          | `@posthog/core`          | Shared core functionality used by multiple SDKs |
-| `browser/`       | `posthog-js`             | Main browser SDK for capturing events and usage |
-| `web/`           | `posthog-js-lite`        | Lightweight browser SDK                         |
-| `ai/`            | `@posthog/ai`            | AI integrations for Node.js                     |
-| `convex/`        | `@posthog/convex`        | Convex.dev component                            |
-| `node/`          | `posthog-node`           | Node.js backend SDK (requires Node >= 20)       |
-| `react/`         | `@posthog/react`         | React components and hooks                      |
-| `react-native/`  | `posthog-react-native`   | React Native mobile SDK                         |
-| `nuxt/`          | `@posthog/nuxt`          | Nuxt framework module                           |
-| `next/`          | `@posthog/next`          | Next.js framework module                        |
-| `nextjs-config/` | `@posthog/nextjs-config` | Next.js configuration helper                    |
-| `openfeature-node-provider/` | `@posthog/openfeature-node-provider` | OpenFeature server provider (posthog-node)   |
-| `openfeature-web-provider/`  | `@posthog/openfeature-web-provider`  | OpenFeature web provider (posthog-js)        |
-| `plugin-utils/`  | `@posthog/plugin-utils`  | Shared CLI and sourcemap utilities for plugins  |
-| `types/`         | `@posthog/types`         | TypeScript type definitions for the SDK         |
+| Package                      | Name                                 | Description                                     |
+| ---------------------------- | ------------------------------------ | ----------------------------------------------- |
+| `core/`                      | `@posthog/core`                      | Shared core functionality used by multiple SDKs |
+| `browser/`                   | `posthog-js`                         | Main browser SDK for capturing events and usage |
+| `web/`                       | `posthog-js-lite`                    | Lightweight browser SDK                         |
+| `ai/`                        | `@posthog/ai`                        | AI integrations for Node.js                     |
+| `convex/`                    | `@posthog/convex`                    | Convex.dev component                            |
+| `node/`                      | `posthog-node`                       | Node.js backend SDK (requires Node >= 20)       |
+| `react/`                     | `@posthog/react`                     | React components and hooks                      |
+| `react-native/`              | `posthog-react-native`               | React Native mobile SDK                         |
+| `nuxt/`                      | `@posthog/nuxt`                      | Nuxt framework module                           |
+| `next/`                      | `@posthog/next`                      | Next.js framework module                        |
+| `nextjs-config/`             | `@posthog/nextjs-config`             | Next.js configuration helper                    |
+| `openfeature-node-provider/` | `@posthog/openfeature-node-provider` | OpenFeature server provider (posthog-node)      |
+| `openfeature-web-provider/`  | `@posthog/openfeature-web-provider`  | OpenFeature web provider (posthog-js)           |
+| `plugin-utils/`              | `@posthog/plugin-utils`              | Shared CLI and sourcemap utilities for plugins  |
+| `types/`                     | `@posthog/types`                     | TypeScript type definitions for the SDK         |
 
 ## Workspace
 
 - This repository is structured as a pnpm workspace and each SDK and tooling package is a member of this global workspace.
 - Example and playground projects are independent pnpm workspaces. You can install their dependencies by running `pnpm install` inside the specific project folder. All dependencies and sub-dependencies to PostHog SDKs will be overwritten using a pnpmfile.
+
+## Dependency Release-Age Exceptions
+
+`minimumReleaseAgeExclude` entries are repository-local and are not inherited by consumers of published packages. Before adding an exception:
+
+1. Check whether the dependency remains in a published package's manifest and will be resolved by consumers rather than bundled into the package.
+2. If `PostHog/posthog` will resolve the immature dependency during its automated SDK upgrade, ensure the same exact-version exception is merged into its `pnpm-workspace.yaml` before releasing. Otherwise, wait until the dependency satisfies the consumer's minimum release age.
 
 ## Environment Setup
 
@@ -166,19 +173,14 @@ Turbo handles build orchestration and ensures packages are built in the correct 
 
 ## Code Style and Linting
 
-### ESLint
+### Oxlint
 
-- Custom `eslint-plugin-posthog-js` for repository-specific rules
-- TypeScript support
-- React support
-- Prettier integration
+- Oxlint runs all workspace lint rules, including the custom `oxlint-plugin-posthog-js` rules
+- TypeScript, React, Jest, Vue, and browser compatibility rules are enabled through Oxlint
 
 ### Automatic Formatting
 
-Pre-commit hooks (via lint-staged) automatically format code on commit:
-
-- TypeScript/JavaScript files: ESLint + Prettier
-- JSON/Markdown files: Prettier
+Oxfmt checks workspace package code during linting. Pre-commit hooks (via prek) automatically lint and format staged TypeScript and JavaScript files, and format staged JSON and Markdown files.
 
 ## Release Process
 
@@ -239,8 +241,8 @@ When a PR containing a changeset is merged to `main`, the `release.yml` GitHub A
 - `pnpm-workspace.yaml` - Workspace definition and version catalogs
 - `turbo.json` - Build orchestration and task caching
 - `.nvmrc` - Node version specification
-- `.eslintrc.cjs` - ESLint configuration
-- `.prettierrc` - Code formatting rules
+- `.oxlintrc.json` - Oxlint configuration, including package-specific overrides
+- `.oxfmtrc.json` - Oxfmt configuration
 
 ### Documentation
 
