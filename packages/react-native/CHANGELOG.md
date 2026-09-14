@@ -1,5 +1,170 @@
 # posthog-react-native
 
+## 4.72.0
+
+### Minor Changes
+
+- [#4928](https://github.com/PostHog/posthog-js/pull/4928) [`c7e592f`](https://github.com/PostHog/posthog-js/commit/c7e592fdedd1dc0f6378a3cf80d5f9801e72f591) Thanks [@marandaneto](https://github.com/marandaneto)! - Add initialization-only `sessionReplayConfig.captureTouches` to disable replay touch coordinates without stopping screenshots on Android and iOS.
+  (2026-09-14)
+
+### Patch Changes
+
+- Updated dependencies [[`c7e592f`](https://github.com/PostHog/posthog-js/commit/c7e592fdedd1dc0f6378a3cf80d5f9801e72f591)]:
+  - @posthog/react-native-plugin@2.9.0
+
+## 4.71.0
+
+### Minor Changes
+
+- [#4907](https://github.com/PostHog/posthog-js/pull/4907) [`fa6381b`](https://github.com/PostHog/posthog-js/commit/fa6381b072f2411460ff305aa7b9b230f351efa4) Thanks [@dustinbyrne](https://github.com/dustinbyrne)! - Add experimental Android-only `screenshotScale`, `screenshotCompressionQuality`, and `screenshotColorMode` options to `sessionReplayConfig`, and bump `com.posthog:posthog-android` to 3.63.1.
+  (2026-09-11)
+
+### Patch Changes
+
+- Updated dependencies [[`fa6381b`](https://github.com/PostHog/posthog-js/commit/fa6381b072f2411460ff305aa7b9b230f351efa4)]:
+  - @posthog/react-native-plugin@2.8.0
+
+## 4.70.0
+
+### Minor Changes
+
+- [#4886](https://github.com/PostHog/posthog-js/pull/4886) [`652a5bc`](https://github.com/PostHog/posthog-js/commit/652a5bc2b7a5c4c66d82ed886482f854c41be87d) Thanks [@itsalysialynn](https://github.com/itsalysialynn)! - Expose rageClickConfig for tuning or disabling native iOS rage click detection from React Native.
+  (2026-09-11)
+
+### Patch Changes
+
+- Updated dependencies [[`652a5bc`](https://github.com/PostHog/posthog-js/commit/652a5bc2b7a5c4c66d82ed886482f854c41be87d)]:
+  - @posthog/react-native-plugin@2.7.0
+
+## 4.69.0
+
+### Minor Changes
+
+- [#4899](https://github.com/PostHog/posthog-js/pull/4899) [`18ae6bb`](https://github.com/PostHog/posthog-js/commit/18ae6bba2c46f5e9ac2708ac7800f1c24774e628) Thanks [@marandaneto](https://github.com/marandaneto)! - Add optional Expo update metadata and app state to React Native JavaScript exceptions.
+  (2026-09-11)
+
+### Patch Changes
+
+- Updated dependencies [[`18ae6bb`](https://github.com/PostHog/posthog-js/commit/18ae6bba2c46f5e9ac2708ac7800f1c24774e628)]:
+  - @posthog/core@1.53.2
+
+## 4.68.9
+
+### Patch Changes
+
+- [#4579](https://github.com/PostHog/posthog-js/pull/4579) [`19e78cc`](https://github.com/PostHog/posthog-js/commit/19e78cc821b80ad2564a921344d9d63cdc58939c) Thanks [@turnipdabeets](https://github.com/turnipdabeets)! - Cap the retry delay for log exports at 30 seconds, the ceiling the logs contract states. It previously doubled to 64 times the flush interval — 192s on web, 640s on React Native — so a log export now resumes within 30 seconds of a failing endpoint recovering, at the cost of more retry requests while that endpoint is down.
+  (2026-09-10)
+
+- [#4579](https://github.com/PostHog/posthog-js/pull/4579) [`19e78cc`](https://github.com/PostHog/posthog-js/commit/19e78cc821b80ad2564a921344d9d63cdc58939c) Thanks [@turnipdabeets](https://github.com/turnipdabeets)! - Keep backing off a failing log flush while new records arrive, instead of the next record resetting the retry to the flush interval.
+  (2026-09-10)
+
+- [#4579](https://github.com/PostHog/posthog-js/pull/4579) [`19e78cc`](https://github.com/PostHog/posthog-js/commit/19e78cc821b80ad2564a921344d9d63cdc58939c) Thanks [@turnipdabeets](https://github.com/turnipdabeets)! - Honor `Retry-After` when the ingestion endpoint refuses a logs or metrics batch, instead of retrying on the SDK's own schedule alone. A refusal naming a longer wait extends the one being served, up to five minutes from when it started. Retry delays now carry jitter so clients refused together do not return together, and metrics backs off exponentially across consecutive failures rather than retrying on a fixed interval.
+  (2026-09-10)
+
+- [#4579](https://github.com/PostHog/posthog-js/pull/4579) [`19e78cc`](https://github.com/PostHog/posthog-js/commit/19e78cc821b80ad2564a921344d9d63cdc58939c) Thanks [@turnipdabeets](https://github.com/turnipdabeets)! - Stop sending logs and metrics batches over 10 MiB, or too large to serialize at all, instead of spending a request to discover the endpoint refuses them.
+  (2026-09-10)
+- Updated dependencies [[`19e78cc`](https://github.com/PostHog/posthog-js/commit/19e78cc821b80ad2564a921344d9d63cdc58939c), [`19e78cc`](https://github.com/PostHog/posthog-js/commit/19e78cc821b80ad2564a921344d9d63cdc58939c), [`19e78cc`](https://github.com/PostHog/posthog-js/commit/19e78cc821b80ad2564a921344d9d63cdc58939c), [`19e78cc`](https://github.com/PostHog/posthog-js/commit/19e78cc821b80ad2564a921344d9d63cdc58939c), [`19e78cc`](https://github.com/PostHog/posthog-js/commit/19e78cc821b80ad2564a921344d9d63cdc58939c), [`19e78cc`](https://github.com/PostHog/posthog-js/commit/19e78cc821b80ad2564a921344d9d63cdc58939c), [`19e78cc`](https://github.com/PostHog/posthog-js/commit/19e78cc821b80ad2564a921344d9d63cdc58939c)]:
+  - @posthog/core@1.53.0
+  - @posthog/types@1.411.0
+
+## 4.68.8
+
+### Patch Changes
+
+- [#4887](https://github.com/PostHog/posthog-js/pull/4887) [`0da006c`](https://github.com/PostHog/posthog-js/commit/0da006c5eb53630c7fc7d63151fc6632d6dd49e0) Thanks [@posthog](https://github.com/apps/posthog)! - Error tracking no longer counts an injected script as your own code. A stack frame is `in_app` only when its filename names a script your app was served — `http(s)`, `file`, `blob`, `app`, `capacitor`, `ionic`, a bundler scheme, or a bare path. A frame served over any other scheme, such as an in-app browser bridge on `iabjs://` or an extension content script on `chrome-extension://`, is kept for context but no longer groups the issue under your code.
+  (2026-09-10)
+- Updated dependencies [[`0da006c`](https://github.com/PostHog/posthog-js/commit/0da006c5eb53630c7fc7d63151fc6632d6dd49e0)]:
+  - @posthog/core@1.52.2
+
+## 4.68.7
+
+### Patch Changes
+
+- [#4900](https://github.com/PostHog/posthog-js/pull/4900) [`c02532f`](https://github.com/PostHog/posthog-js/commit/c02532f2c4cdb7d2c876405adbc290cb374c0bad) Thanks [@marandaneto](https://github.com/marandaneto)! - Fix stale screen names on React Native exceptions and missed screen tracking on tab changes.
+  (2026-09-10)
+
+## 4.68.6
+
+### Patch Changes
+
+- [#4896](https://github.com/PostHog/posthog-js/pull/4896) [`d9a2142`](https://github.com/PostHog/posthog-js/commit/d9a2142c0635895ee1c85676f2d50048cf289fb3) Thanks [@marandaneto](https://github.com/marandaneto)! - Give fatal JavaScript exceptions up to two seconds to persist before forwarding to React Native's fatal handler.
+  (2026-09-10)
+
+## 4.68.5
+
+### Patch Changes
+
+- [#4891](https://github.com/PostHog/posthog-js/pull/4891) [`65fb811`](https://github.com/PostHog/posthog-js/commit/65fb8119017c5c4abe359d7630329567666a78f1) Thanks [@marandaneto](https://github.com/marandaneto)! - Safely share uncaught-error handlers across SDK instances and preserve React Native error handling when reporting fails.
+  (2026-09-10)
+
+- [#4890](https://github.com/PostHog/posthog-js/pull/4890) [`f79d11f`](https://github.com/PostHog/posthog-js/commit/f79d11f96ad351595c458bba3a7b88670c2be3b3) Thanks [@marandaneto](https://github.com/marandaneto)! - Handle nullish render errors safely, capture React component stacks, and support retrying from error boundary fallbacks.
+  (2026-09-10)
+
+## 4.68.4
+
+### Patch Changes
+
+- [#4725](https://github.com/PostHog/posthog-js/pull/4725) [`d5abece`](https://github.com/PostHog/posthog-js/commit/d5abece39d72e079a3233f26a1c54dbd569d53ee) Thanks [@bs1180](https://github.com/bs1180)! - fix(surveys): don't show the default "Start typing..." placeholder when the survey's placeholder text is empty
+  (2026-09-09)
+
+## 4.68.3
+
+### Patch Changes
+
+- [#4851](https://github.com/PostHog/posthog-js/pull/4851) [`250360d`](https://github.com/PostHog/posthog-js/commit/250360d3a02dbb4147579fa893a40edcd2938cb6) Thanks [@Anzormumladze](https://github.com/Anzormumladze)! - Keep the keyboard open when touching survey content to select, paste, or scroll text.
+  (2026-09-09)
+
+## 4.68.2
+
+### Patch Changes
+
+- [#4798](https://github.com/PostHog/posthog-js/pull/4798) [`4358915`](https://github.com/PostHog/posthog-js/commit/4358915f3c5dbad364cb9752a3b0b9473b19a3dd) Thanks [@posthog](https://github.com/apps/posthog)! - fix(error-tracking): collapse repeated frame cycles in parsed stack traces to reduce grouping differences caused by recursion depth, while preserving distinct throw locations
+  (2026-09-09)
+- Updated dependencies [[`4358915`](https://github.com/PostHog/posthog-js/commit/4358915f3c5dbad364cb9752a3b0b9473b19a3dd)]:
+  - @posthog/core@1.51.1
+
+## 4.68.1
+
+### Patch Changes
+
+- [#4855](https://github.com/PostHog/posthog-js/pull/4855) [`a81418d`](https://github.com/PostHog/posthog-js/commit/a81418dc7ced44a2b3c2756b2720bae1ea3a5fd0) Thanks [@dvd233](https://github.com/dvd233)! - Fix Android native symbol uploads when another Expo plugin registers an app Gradle mod first.
+  (2026-09-09)
+
+## 4.68.0
+
+### Minor Changes
+
+- [#4822](https://github.com/PostHog/posthog-js/pull/4822) [`a6320d5`](https://github.com/PostHog/posthog-js/commit/a6320d57cbde8fb8f2e9e89f273c72856126f0c7) Thanks [@AyobamiH](https://github.com/AyobamiH)! - feat(react-native): support shuffled survey questions and answer options
+  (2026-09-08)
+
+## 4.67.3
+
+### Patch Changes
+
+- [#4799](https://github.com/PostHog/posthog-js/pull/4799) [`3161e0d`](https://github.com/PostHog/posthog-js/commit/3161e0d92f6da33217ea552fb635c08edee3f4dc) Thanks [@marandaneto](https://github.com/marandaneto)! - Preserve Expo static exports and their per-asset Chunk IDs when wrapping Expo's Metro serializer.
+  (2026-09-07)
+
+## 4.67.2
+
+### Patch Changes
+
+- [#4802](https://github.com/PostHog/posthog-js/pull/4802) [`6a5025e`](https://github.com/PostHog/posthog-js/commit/6a5025e5b29dc71e67ab97b4c9220204690f6afe) Thanks [@marandaneto](https://github.com/marandaneto)! - Update displayed surveys when the person's language changes, preserving in-progress answers and keeping survey event language metadata in sync.
+  (2026-09-07)
+
+## 4.67.1
+
+### Patch Changes
+
+- [#4785](https://github.com/PostHog/posthog-js/pull/4785) [`74ca945`](https://github.com/PostHog/posthog-js/commit/74ca9458a166b0a5a9f707e74b1a2e6e2852c829) Thanks [@marandaneto](https://github.com/marandaneto)! - Clarify feature flag return-value terminology across SDK APIs. A `false` value is a conclusive off evaluation, while `undefined` means no evaluation is available. Remote evaluation omits globally inactive flags, whereas backend local evaluation can resolve cached inactive definitions to `false`.
+  (2026-09-07)
+
+- [#4778](https://github.com/PostHog/posthog-js/pull/4778) [`1d26ccf`](https://github.com/PostHog/posthog-js/commit/1d26ccf7900d695feaead6a74cf14c2f8dea72a3) Thanks [@posthog](https://github.com/apps/posthog)! - fix(react-native): keep Metro async chunks serialized when the chunk ID is absent
+  (2026-09-07)
+- Updated dependencies [[`f8013ed`](https://github.com/PostHog/posthog-js/commit/f8013ed497fdf37765358df23152b328c339e586), [`74ca945`](https://github.com/PostHog/posthog-js/commit/74ca9458a166b0a5a9f707e74b1a2e6e2852c829), [`5e74132`](https://github.com/PostHog/posthog-js/commit/5e74132a76a32d5df9c6706dddf1597c748061d2)]:
+  - @posthog/react-native-plugin@2.5.2
+  - @posthog/core@1.50.6
+  - @posthog/types@1.409.1
+
 ## 4.67.0
 
 ### Minor Changes

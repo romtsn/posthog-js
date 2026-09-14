@@ -472,6 +472,8 @@ export class PostHog implements PostHogInterface {
 
     _requestQueue?: RequestQueue
     _retryQueue?: RetryQueue
+    _isPageUnloading = false
+    private _isShutdown = false
     sessionRecording?: SessionRecording
     externalIntegrations?: ExternalIntegrations
     webPerformance = new DeprecatedWebPerformanceObserver()
@@ -948,9 +950,7 @@ export class PostHog implements PostHogInterface {
         const initialDistinctId = config.bootstrap?.distinctID
         this._hasStableInitialDistinctId = !!initialDistinctId && !isEmptyString(initialDistinctId)
 
-        // isUndefined doesn't provide typehint here so wouldn't reduce bundle as we'd need to assign
-        // oxlint-disable-next-line posthog-js/no-direct-undefined-check
-        if (config.bootstrap?.distinctID !== undefined) {
+        if (config.bootstrap?.distinctID) {
             const bootstrapDistinctId = config.bootstrap.distinctID
             const existingDistinctId = this.get_distinct_id()
             const existingUserState = this.persistence.get_property(USER_STATE)
@@ -1029,6 +1029,16 @@ export class PostHog implements PostHogInterface {
         // Not making it passive to try and force the browser to handle this before the page is unloaded
         addEventListener(window, 'onpagehide' in self ? 'pagehide' : 'unload', this._handle_unload.bind(this), {
             passive: false,
+        })
+        // `pagehide` also fires when the browser freezes the page into the back-forward cache, and
+        // the same instance resumes on `pageshow`. Without this the page would stay marked as
+        // unloading for the rest of its life, and every later unbatched capture would take the
+        // beacon path on a fully active page.
+        addEventListener(window, 'pageshow', () => {
+            this._isPageUnloading = false
+            if (!this._isShutdown) {
+                this._retryQueue?.resume()
+            }
         })
 
         // We want to avoid promises for IE11 compatibility, so we use callbacks here
@@ -1343,6 +1353,8 @@ export class PostHog implements PostHogInterface {
     }
 
     _handle_unload(): void {
+        this._isPageUnloading = true
+
         // Optional-call the method, not just the receiver: after a deploy a cached older
         // lazy-loaded surveys chunk can yield an instance whose prototype lacks handlePageUnload,
         // and `this.surveys?.handlePageUnload()` would still throw "handlePageUnload is not a function".
@@ -1857,6 +1869,7 @@ export class PostHog implements PostHogInterface {
             compression: 'best-available',
             timestampMode: isSessionRecording ? 'body' : 'capture-body',
             batchKey: options?._batchKey,
+            ...(isSessionRecording && data.properties?.$session_id ? { batchGroup: data.properties.$session_id } : {}),
             ...(options?.transport ? { transport: options.transport } : {}),
             ...(fbcToConfirm
                 ? {
@@ -1870,6 +1883,8 @@ export class PostHog implements PostHogInterface {
                 : {}),
         }
 
+        // NB an options object without a `_batchKey` also skips the queue, so most calls that pass
+        // options are unbatched already and `send_instantly` changes nothing for them
         if (
             this.config.request_batching &&
             (!options || options?._batchKey) &&
@@ -1878,6 +1893,16 @@ export class PostHog implements PostHogInterface {
         ) {
             this._requestQueue.enqueue(requestOptions)
         } else {
+            // Keep response-capable transports on active pages so failures can be retried.
+            // During unload, prefer sendBeacon unless a response or custom headers are required.
+            if (
+                !requestOptions.transport &&
+                !requestOptions.callback &&
+                isEmptyObject(this.config.request_headers ?? {}) &&
+                this._isPageUnloading
+            ) {
+                requestOptions.transport = 'sendBeacon'
+            }
             this._send_retriable_request(requestOptions)
         }
 
@@ -3667,9 +3692,7 @@ export class PostHog implements PostHogInterface {
             )
 
             if (bootstrap) {
-                // isUndefined doesn't provide typehint here so wouldn't reduce bundle as we'd need to assign
-                // oxlint-disable-next-line posthog-js/no-direct-undefined-check
-                if (bootstrap.distinctID !== undefined && !this._inCookielessMode()) {
+                if (bootstrap.distinctID && !this._inCookielessMode()) {
                     this.persistence?.set_property(
                         USER_STATE,
                         bootstrap.isIdentifiedID ? USER_STATE_IDENTIFIED : USER_STATE_ANONYMOUS
@@ -3680,7 +3703,7 @@ export class PostHog implements PostHogInterface {
                 this.featureFlags?.initialize()
 
                 if (
-                    !isUndefined(bootstrapSessionID) &&
+                    !isNullish(bootstrapSessionID) &&
                     !this.sessionManager?.setBootstrapSessionId(bootstrapSessionID, true)
                 ) {
                     const bootstrapWithoutSessionID = { ...bootstrap }
@@ -3741,6 +3764,7 @@ export class PostHog implements PostHogInterface {
             return
         }
 
+        this._isShutdown = true
         this._getBrowserClientAdapter().dispose()
         this.sessionRecording?.dispose()
 
@@ -3748,6 +3772,7 @@ export class PostHog implements PostHogInterface {
         // so no buffered events are silently dropped when teardown is explicit.
         this.logs?.flushLogs('sendBeacon')
         void this.metrics?.flush('sendBeacon')
+        this.metrics?.dispose()
         this._requestQueue?.unload()
         this._retryQueue?.unload()
         try {
@@ -4025,6 +4050,7 @@ export class PostHog implements PostHogInterface {
 
             this.exceptionObserver?.onConfigChange()
             this.exceptions?.onConfigChange()
+            this.metrics?.onConfigChange()
 
             this.sessionRecording?.startIfEnabledOrStop()
             this.tracingHeaders?.startIfEnabledOrStop()
