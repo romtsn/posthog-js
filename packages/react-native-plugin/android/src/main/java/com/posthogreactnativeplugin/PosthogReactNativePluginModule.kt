@@ -139,6 +139,9 @@ class PosthogReactNativePluginModule(
             PostHogAndroidConfig(apiKey, host).apply {
               debug = debugValue
               optOut = theOptOut
+              // JS owns consent: posthog-js core keeps its own store, so the value above is the
+              // answer, not a default the SDK may override from its own persisted copy.
+              persistOptOut = false
               preloadFeatureFlags = thePreloadFeatureFlags
               captureDeepLinks = false
               captureApplicationLifecycleEvents = false

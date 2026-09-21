@@ -1,5 +1,42 @@
 # posthog-node
 
+## 5.52.5
+
+### Patch Changes
+
+- [#5018](https://github.com/PostHog/posthog-js/pull/5018) [`9cd8ebd`](https://github.com/PostHog/posthog-js/commit/9cd8ebd0ce025a36af999a5f3e8f7fe647f85431) Thanks [@turnipdabeets](https://github.com/turnipdabeets)! - Stop dropping long spans that end: `maxSpanAgeMs` now evicts spans only once `maxLiveSpans` is reached, so a span that runs past the age limit and then ends is exported, and its children are no longer orphaned.
+  (2026-09-21)
+
+- [#4800](https://github.com/PostHog/posthog-js/pull/4800) [`aad7464`](https://github.com/PostHog/posthog-js/commit/aad7464894ef8ebd57e293929af9917caf9f4df7) Thanks [@marandaneto](https://github.com/marandaneto)! - Respect the definitions response's `property_matching_version` during local feature flag evaluation. Version 2 uses explicit boolean/string equality and per-member array matching, while missing or other versions retain service legacy matching (including empty-array truthiness). Preserve the version in Node definition caches and Convex persisted definitions, and propagate it through person, group, cohort and dependency evaluation without mixing snapshots during reloads. Existing numeric ambiguity fallback and SemVer parsing policies are unchanged.
+  (2026-09-21)
+- Updated dependencies [[`9cd8ebd`](https://github.com/PostHog/posthog-js/commit/9cd8ebd0ce025a36af999a5f3e8f7fe647f85431), [`aad7464`](https://github.com/PostHog/posthog-js/commit/aad7464894ef8ebd57e293929af9917caf9f4df7)]:
+  - @posthog/core@1.55.1
+
+## 5.52.4
+
+### Patch Changes
+
+- [#4885](https://github.com/PostHog/posthog-js/pull/4885) [`39a8980`](https://github.com/PostHog/posthog-js/commit/39a89801877f684b599550ae2fc944fec347e042) Thanks [@decknamec](https://github.com/decknamec)! - Server-side feature flags now resolve in posthog-node and posthog-edge even when a proxy rewrites the request's `User-Agent`. Flags restricted to the `client` runtime now resolve to `undefined` in these SDKs, where a rewritten `User-Agent` previously let them through.
+  (2026-09-15)
+- Updated dependencies [[`39a8980`](https://github.com/PostHog/posthog-js/commit/39a89801877f684b599550ae2fc944fec347e042)]:
+  - @posthog/core@1.54.2
+
+## 5.52.3
+
+### Patch Changes
+
+- [#4941](https://github.com/PostHog/posthog-js/pull/4941) [`07c1045`](https://github.com/PostHog/posthog-js/commit/07c10451f3068abb164d8036b0731a391574455f) Thanks [@marandaneto](https://github.com/marandaneto)! - Capture causes and AggregateError members with relationship metadata and individual stacks, limiting output to 50 entries and 1,000 member inspections.
+  (2026-09-15)
+- Updated dependencies [[`07c1045`](https://github.com/PostHog/posthog-js/commit/07c10451f3068abb164d8036b0731a391574455f)]:
+  - @posthog/core@1.54.1
+
+## 5.52.2
+
+### Patch Changes
+
+- [#4951](https://github.com/PostHog/posthog-js/pull/4951) [`55c5142`](https://github.com/PostHog/posthog-js/commit/55c51429d964bdb8b5814dc052bcaeacd1416d56) Thanks [@marandaneto](https://github.com/marandaneto)! - Fix Express exception events reporting the initial response status instead of the final HTTP status.
+  (2026-09-14)
+
 ## 5.52.1
 
 ### Patch Changes
