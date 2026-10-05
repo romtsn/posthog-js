@@ -1,5 +1,99 @@
 # posthog-js
 
+## 1.435.9
+
+### Patch Changes
+
+- [#5150](https://github.com/PostHog/posthog-js/pull/5150) [`abe2924`](https://github.com/PostHog/posthog-js/commit/abe2924c96a1ddb1d32362dc97bdd9ce121672ce) Thanks [@DeepanshuPal](https://github.com/DeepanshuPal)! - Stop a SecurityError escaping the recorder when an iframe becomes cross-origin while shadow DOM observation starts.
+  (2026-10-05)
+
+## 1.435.8
+
+### Patch Changes
+
+- [#5152](https://github.com/PostHog/posthog-js/pull/5152) [`2bdc8eb`](https://github.com/PostHog/posthog-js/commit/2bdc8eb28bdc2131dc8c7271d7628b247404143c) Thanks [@rafaeelaudibert](https://github.com/rafaeelaudibert)! - Use the new PostHog logo in the survey footer branding
+  (2026-10-02)
+
+## 1.435.7
+
+### Patch Changes
+
+- [#5188](https://github.com/PostHog/posthog-js/pull/5188) [`8a005ca`](https://github.com/PostHog/posthog-js/commit/8a005ca4938c28b3a015fb71083024023aaf4164) Thanks [@dustinbyrne](https://github.com/dustinbyrne)! - Preserve shared identity while consent is pending and clear it after shared rejection in cookieless mode.
+  (2026-10-02)
+
+## 1.435.6
+
+### Patch Changes
+
+- [#5046](https://github.com/PostHog/posthog-js/pull/5046) [`c360da1`](https://github.com/PostHog/posthog-js/commit/c360da1e93ba7fc04eea7cc4f96dd9782dd931a7) Thanks [@luke-belton](https://github.com/luke-belton)! - Capture the OpenAI Ads click identifier (`oppref`) as a campaign parameter, so it is set on events and as `$initial_oppref` like every other ad click ID.
+  (2026-10-01)
+
+- [#5175](https://github.com/PostHog/posthog-js/pull/5175) [`c21f14d`](https://github.com/PostHog/posthog-js/commit/c21f14da8332d0d23ed5620bbf5249927accab83) Thanks [@marandaneto](https://github.com/marandaneto)! - Fix cross-subdomain identity continuity when opting in after cookie consent.
+  (2026-10-01)
+- Updated dependencies [[`c360da1`](https://github.com/PostHog/posthog-js/commit/c360da1e93ba7fc04eea7cc4f96dd9782dd931a7)]:
+  - @posthog/browser-common@0.9.1
+  - @posthog/core@1.55.3
+
+## 1.435.5
+
+### Patch Changes
+
+- [#5167](https://github.com/PostHog/posthog-js/pull/5167) [`59b93a3`](https://github.com/PostHog/posthog-js/commit/59b93a30a05f2cc181c0868b7158b4c153f1dc3f) Thanks [@dustinbyrne](https://github.com/dustinbyrne)! - Preserve session attribution and registered properties across initialization and configuration updates when persistence writes are debounced.
+  (2026-09-30)
+
+## 1.435.4
+
+### Patch Changes
+
+- [#5158](https://github.com/PostHog/posthog-js/pull/5158) [`5c92e83`](https://github.com/PostHog/posthog-js/commit/5c92e83619a18c32ccf374125623599cbc04a517) Thanks [@posthog](https://github.com/apps/posthog)! - Fix a `DataCloneError` when session replay records network timing inside a cross-origin iframe.
+  (2026-09-30)
+
+## 1.435.3
+
+### Patch Changes
+
+- [#4976](https://github.com/PostHog/posthog-js/pull/4976) [`47db7ce`](https://github.com/PostHog/posthog-js/commit/47db7ce9005dc4d11647ab3aa217f0e38bb38f74) Thanks [@posthog](https://github.com/apps/posthog)! - Start session recording at `DOMContentLoaded`, so a page whose `load` event is late or never fires still records, and report `$sdk_debug_rrweb_attached` from rrweb's own recording state
+  (2026-09-30)
+
+## 1.435.2
+
+### Patch Changes
+
+- [#5144](https://github.com/PostHog/posthog-js/pull/5144) [`bd66cee`](https://github.com/PostHog/posthog-js/commit/bd66ceef9ed5308f63e64a3f3058ae6e2298dbdf) Thanks [@marandaneto](https://github.com/marandaneto)! - Reduce replay debug properties on captured events while preserving recording status and capture diagnostics. Report cumulative mutation-drop counts and dropped bytes on `$snapshot` events only when greater than zero.
+  (2026-09-30)
+
+## 1.435.1
+
+### Patch Changes
+
+- [#5120](https://github.com/PostHog/posthog-js/pull/5120) [`5929eab`](https://github.com/PostHog/posthog-js/commit/5929eab802d910c15edd1fa322fb7c29614151af) Thanks [@breken-ai](https://github.com/breken-ai)! - PostHogFeature without `match` shows the fallback when the flag evaluates to false.
+  (2026-09-29)
+
+## 1.435.0
+
+### Minor Changes
+
+- [#4794](https://github.com/PostHog/posthog-js/pull/4794) [`e89d224`](https://github.com/PostHog/posthog-js/commit/e89d224c07b296e6a16ff9bdb0d9bce5876fc202) Thanks [@AyobamiH](https://github.com/AyobamiH)! - Add `onActiveMatchingSurveysChanged` to subscribe to survey eligibility updates with safe unsubscribe and recoverable load-error reporting.
+  (2026-09-29)
+
+### Patch Changes
+
+- Updated dependencies [[`e89d224`](https://github.com/PostHog/posthog-js/commit/e89d224c07b296e6a16ff9bdb0d9bce5876fc202)]:
+  - @posthog/types@1.413.0
+
+## 1.434.18
+
+### Patch Changes
+
+- [#5125](https://github.com/PostHog/posthog-js/pull/5125) [`69a55c0`](https://github.com/PostHog/posthog-js/commit/69a55c06c85f83e7b6008446530a1b728812c427) Thanks [@marandaneto](https://github.com/marandaneto)! - Prevent analytics persistence writes during initialization when persistence is disabled or opted out.
+  (2026-09-29)
+
+- [#5133](https://github.com/PostHog/posthog-js/pull/5133) [`fbf3990`](https://github.com/PostHog/posthog-js/commit/fbf3990e2e0b4d072cab83477ec8bcca20cd8135) Thanks [@marandaneto](https://github.com/marandaneto)! - Isolate replay network masking callback errors so unrelated network records continue to be captured.
+  (2026-09-29)
+
+- [#5126](https://github.com/PostHog/posthog-js/pull/5126) [`5775575`](https://github.com/PostHog/posthog-js/commit/577557503c53f99ccd15e31ec6463069eaaa1cff) Thanks [@marandaneto](https://github.com/marandaneto)! - Preserve equals signs in survey URL prefill values and ignore malformed URL parameters without blocking surveys.
+  (2026-09-29)
+
 ## 1.434.17
 
 ### Patch Changes
