@@ -2320,7 +2320,7 @@
       "name": "BeforeSendFn",
       "properties": [],
       "path": "../core/src/types.ts",
-      "example": "(event: CaptureEvent | null) => CaptureEvent | null"
+      "example": "(event: CaptureEvent) => CaptureEvent | null"
     },
     {
       "id": "CaptureEvent",
@@ -4164,6 +4164,10 @@
         {
           "type": "((distinctId: string, timestamp: string, properties: PostHogReactNativePluginMap) => Promise<void>) & ((distinctId: string, timestamp: string, properties: { [key: string]: any; }) => Promise<void>)",
           "name": "captureFatalException"
+        },
+        {
+          "type": "((message: string) => Promise<void>) & ((message: string) => Promise<void>)",
+          "name": "markFatalExceptionHandled"
         },
         {
           "type": "() => Promise<PostHogReactNativePluginMap>",

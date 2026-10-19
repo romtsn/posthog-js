@@ -1,5 +1,46 @@
 # posthog-js
 
+## 1.438.12
+
+### Patch Changes
+
+- [#5298](https://github.com/PostHog/posthog-js/pull/5298) [`e940c92`](https://github.com/PostHog/posthog-js/commit/e940c92b9471e718375a40c5f2fdda952ce16663) Thanks [@github-actions](https://github.com/apps/github-actions)! - Prevent backward device clock changes from subtracting client rate-limit tokens.
+  (2026-10-15)
+
+## 1.438.11
+
+### Patch Changes
+
+- [#5260](https://github.com/PostHog/posthog-js/pull/5260) [`845bf99`](https://github.com/PostHog/posthog-js/commit/845bf99fe65302169e8b2b50cbcb38eacb4b122f) Thanks [@gesh](https://github.com/gesh)! - Capture WebMCP failures in Error Tracking when exception autocapture is enabled. With `posthog-js/slim`, add `ErrorTrackingExtensions` next to `WebMCPExtensions` to get these events.
+  (2026-10-15)
+
+## 1.438.10
+
+### Patch Changes
+
+- [#5300](https://github.com/PostHog/posthog-js/pull/5300) [`09d4ba2`](https://github.com/PostHog/posthog-js/commit/09d4ba28c41b7183c49e74376ea25b5e9219c2c3) Thanks [@rafaeelaudibert](https://github.com/rafaeelaudibert)! - Capture the Freebuff click identifier (`bfcid`) as a campaign parameter, so it is set on events and as `$initial_bfcid` like every other ad click ID.
+  (2026-10-14)
+- Updated dependencies [[`09d4ba2`](https://github.com/PostHog/posthog-js/commit/09d4ba28c41b7183c49e74376ea25b5e9219c2c3)]:
+  - @posthog/browser-common@0.9.5
+  - @posthog/core@1.59.1
+
+## 1.438.9
+
+### Patch Changes
+
+- [#5281](https://github.com/PostHog/posthog-js/pull/5281) [`8f2d581`](https://github.com/PostHog/posthog-js/commit/8f2d5818a160040444807a7fc640aabd1ed324f5) Thanks [@marandaneto](https://github.com/marandaneto)! - Fix `before_send` callback types to accept non-null events while still allowing `null` returns to drop events.
+  (2026-10-12)
+- Updated dependencies [[`8f2d581`](https://github.com/PostHog/posthog-js/commit/8f2d5818a160040444807a7fc640aabd1ed324f5)]:
+  - @posthog/types@1.415.3
+  - @posthog/core@1.58.1
+
+## 1.438.8
+
+### Patch Changes
+
+- [#5259](https://github.com/PostHog/posthog-js/pull/5259) [`ba4cc49`](https://github.com/PostHog/posthog-js/commit/ba4cc49d9471ac1eaec88023d7a2cc5d5b6f06a8) Thanks [@gesh](https://github.com/gesh)! - Capture WebMCP error types and sanitized messages.
+  (2026-10-12)
+
 ## 1.438.7
 
 ### Patch Changes
