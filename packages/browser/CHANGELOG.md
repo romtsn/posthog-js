@@ -1,5 +1,116 @@
 # posthog-js
 
+## 1.438.23
+
+### Patch Changes
+
+- [#5335](https://github.com/PostHog/posthog-js/pull/5335) [`cb34fe0`](https://github.com/PostHog/posthog-js/commit/cb34fe03c49feb636ea4537f6f6b05144d163dac) Thanks [@hpouillot](https://github.com/hpouillot)! - Enable synchronous session replay fetch capture by default for new SDK versions.
+  (2026-10-26)
+- Updated dependencies [[`cb34fe0`](https://github.com/PostHog/posthog-js/commit/cb34fe03c49feb636ea4537f6f6b05144d163dac)]:
+  - @posthog/types@1.416.1
+
+## 1.438.22
+
+### Patch Changes
+
+- [#5429](https://github.com/PostHog/posthog-js/pull/5429) [`1034948`](https://github.com/PostHog/posthog-js/commit/103494838c69ebb9457bcaa6567a437118d7f1ec) Thanks [@pauldambra](https://github.com/pauldambra)! - fix(browser): stop parsing the whole persistence entry on every capture() to refresh Meta identifiers. This made Interaction to Next Paint slower since 1.426.0, most of all on mobile and for projects with many feature flags.
+  (2026-10-26)
+
+## 1.438.21
+
+### Patch Changes
+
+- [#5346](https://github.com/PostHog/posthog-js/pull/5346) [`f91145d`](https://github.com/PostHog/posthog-js/commit/f91145de49347be34de2a0dcd0f5741f1f6ec428) Thanks [@sebxt](https://github.com/sebxt)! - Reject a prefilled survey rating of 0 on rating scales that start at 1.
+  (2026-10-23)
+
+- [#5399](https://github.com/PostHog/posthog-js/pull/5399) [`02616e1`](https://github.com/PostHog/posthog-js/commit/02616e1ffb93c71dde2804f691e2c10d5016755b) Thanks [@ARXHHHH](https://github.com/ARXHHHH)! - Ship the IE11 `Math.trunc` and `Number.isInteger` polyfills only in `array.full.es5.js`, so the modern bundles no longer trigger Lighthouse's "Legacy JavaScript" audit.
+  (2026-10-23)
+- Updated dependencies [[`f827137`](https://github.com/PostHog/posthog-js/commit/f82713756db5bc351f6e2ac4e3653b4ba23e904d), [`f91145d`](https://github.com/PostHog/posthog-js/commit/f91145de49347be34de2a0dcd0f5741f1f6ec428), [`02616e1`](https://github.com/PostHog/posthog-js/commit/02616e1ffb93c71dde2804f691e2c10d5016755b)]:
+  - @posthog/core@1.60.1
+  - @posthog/browser-common@0.9.11
+
+## 1.438.20
+
+### Patch Changes
+
+- [#5292](https://github.com/PostHog/posthog-js/pull/5292) [`d73e6c7`](https://github.com/PostHog/posthog-js/commit/d73e6c7169319105780bef7b07a93247f6126968) Thanks [@sarmah-rup](https://github.com/sarmah-rup)! - Read query params with form-encoding rules: an encoded plus (`%2B`) is kept as `+` instead of becoming a space, and values that contain `=` are no longer cut off. This fixes UTM, click ID and search keyword properties such as `utm_term=c%2B%2B`.
+  (2026-10-23)
+- Updated dependencies [[`d73e6c7`](https://github.com/PostHog/posthog-js/commit/d73e6c7169319105780bef7b07a93247f6126968)]:
+  - @posthog/browser-common@0.9.10
+
+## 1.438.19
+
+### Patch Changes
+
+- [#4994](https://github.com/PostHog/posthog-js/pull/4994) [`bcd33ce`](https://github.com/PostHog/posthog-js/commit/bcd33ce0f8c9658e0e37c336ced7968960228fbd) Thanks [@dustinbyrne](https://github.com/dustinbyrne)! - Share autocapture across browser SDKs while preserving existing event capture behavior.
+  (2026-10-22)
+- Updated dependencies [[`bcd33ce`](https://github.com/PostHog/posthog-js/commit/bcd33ce0f8c9658e0e37c336ced7968960228fbd)]:
+  - @posthog/browser-common@0.9.9
+
+## 1.438.18
+
+### Patch Changes
+
+- [#5189](https://github.com/PostHog/posthog-js/pull/5189) [`2aacdcb`](https://github.com/PostHog/posthog-js/commit/2aacdcbe891446873859d308502b6be13f345e2a) Thanks [@posthog](https://github.com/apps/posthog)! - Log why `capture()` dropped an event (capturing disabled or a bot user agent) when `debug: true` is set
+  (2026-10-22)
+
+- [#5383](https://github.com/PostHog/posthog-js/pull/5383) [`0faf643`](https://github.com/PostHog/posthog-js/commit/0faf6430d9117f843fc1d0bb72d737cb9d15a5d0) Thanks [@sarankumar1325](https://github.com/sarankumar1325)! - Conversations: the widget now comes back after `reset()`, and after a cookieless (`on_reject`) visitor calls `opt_in_capturing()`, instead of staying unavailable until the next page load.
+  (2026-10-22)
+
+## 1.438.17
+
+### Patch Changes
+
+- [#5367](https://github.com/PostHog/posthog-js/pull/5367) [`23b287f`](https://github.com/PostHog/posthog-js/commit/23b287fb1b4fa7ecbeb9e3184292a9730718d5b9) Thanks [@sarankumar1325](https://github.com/sarankumar1325)! - Session replay records mouse movement inside same-origin iframes as mouse movement instead of touch movement, so the replay cursor stays visible.
+  (2026-10-22)
+
+- [#5348](https://github.com/PostHog/posthog-js/pull/5348) [`45f6cd6`](https://github.com/PostHog/posthog-js/commit/45f6cd6b65bc4319a0887bfd83074e1a065c0962) Thanks [@ayushjhanwar-png](https://github.com/ayushjhanwar-png)! - Keep session replay data URI filtering output valid JSON and match svg+xml and parameterised data URIs.
+  (2026-10-22)
+
+- [#5325](https://github.com/PostHog/posthog-js/pull/5325) [`21a2559`](https://github.com/PostHog/posthog-js/commit/21a2559271cde904a35311f4adc43fd924cbc025) Thanks [@Majny](https://github.com/Majny)! - Session replay no longer installs the network plugin when the client sets `session_recording.recordHeaders` and `recordBody` to `false` and turns network timing off, even if the project enables network payload capture. Previously request URLs and timings were still recorded.
+  (2026-10-22)
+
+## 1.438.16
+
+### Patch Changes
+
+- [#5370](https://github.com/PostHog/posthog-js/pull/5370) [`a50fa7a`](https://github.com/PostHog/posthog-js/commit/a50fa7aa180c9693f0efe111ead60ad82c021620) Thanks [@sarankumar1325](https://github.com/sarankumar1325)! - Conversations: a `reset()` or opt-out that happens while the widget is still loading its tickets (or a restore link) no longer brings the widget back, restarts polling, or writes the old ticket id back to storage.
+  (2026-10-22)
+
+- [#5365](https://github.com/PostHog/posthog-js/pull/5365) [`964e736`](https://github.com/PostHog/posthog-js/commit/964e736e0bf1649c7207b30e880828ecb8af897c) Thanks [@gustavohstrassburger](https://github.com/gustavohstrassburger)! - Feature flags read before the user opts in to capturing now send `$feature_flag_called` the next time they are read after opt in.
+  (2026-10-22)
+
+- [#5256](https://github.com/PostHog/posthog-js/pull/5256) [`e7c87fa`](https://github.com/PostHog/posthog-js/commit/e7c87fac7b9093cabe1fc39bf085c5a5786fe9a1) Thanks [@jakesciotto](https://github.com/jakesciotto)! - Session replay: a scroll on a `scroll-snap-type` container now lands instantly during real-time playback, so a sheet or carousel that a scroll reveals shows the same content in Safari as in Chrome. Scrolls on other elements still animate.
+  (2026-10-22)
+- Updated dependencies [[`964e736`](https://github.com/PostHog/posthog-js/commit/964e736e0bf1649c7207b30e880828ecb8af897c)]:
+  - @posthog/browser-common@0.9.8
+  - @posthog/core@1.59.4
+
+## 1.438.15
+
+### Patch Changes
+
+- [#5273](https://github.com/PostHog/posthog-js/pull/5273) [`d9148bb`](https://github.com/PostHog/posthog-js/commit/d9148bbf9a92807464402515aed5d628810087eb) Thanks [@posthog](https://github.com/apps/posthog)! - Warn in debug mode when `reloadFeatureFlags()` runs inside an `onFeatureFlags` callback, because cross-tab flag changes can turn it into a request loop
+  (2026-10-22)
+- Updated dependencies [[`d9148bb`](https://github.com/PostHog/posthog-js/commit/d9148bbf9a92807464402515aed5d628810087eb)]:
+  - @posthog/browser-common@0.9.7
+
+## 1.438.14
+
+### Patch Changes
+
+- [#4992](https://github.com/PostHog/posthog-js/pull/4992) [`3b7ffc6`](https://github.com/PostHog/posthog-js/commit/3b7ffc6fe4990ff26d661f48612166e31850ef31) Thanks [@dustinbyrne](https://github.com/dustinbyrne)! - Share surveys across browser SDKs; calls to `getSurveys` before survey setup now invoke the callback immediately with an unavailable error. Notify all survey subscribers when survey loading fails.
+  (2026-10-22)
+- Updated dependencies [[`3b7ffc6`](https://github.com/PostHog/posthog-js/commit/3b7ffc6fe4990ff26d661f48612166e31850ef31)]:
+  - @posthog/browser-common@0.9.6
+
+## 1.438.13
+
+### Patch Changes
+
+- [#5322](https://github.com/PostHog/posthog-js/pull/5322) [`5beb414`](https://github.com/PostHog/posthog-js/commit/5beb4146c7cd05b7b00908459d1151fd723abe4f) Thanks [@AyobamiH](https://github.com/AyobamiH)! - Flush buffered web vitals immediately using a beacon when the page is hidden or unloaded.
+  (2026-10-20)
+
 ## 1.438.12
 
 ### Patch Changes
