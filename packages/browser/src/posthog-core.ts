@@ -230,6 +230,8 @@ type MetaIdentifierChannel = {
     unregister: () => void
 }
 
+type SentMetaIdentifier = { channel: MetaIdentifierChannel; value: string }
+
 // The pixel's _fbc carries the true click time: it wins for a click the URL or the store holds, or for a newer one.
 const fbcCookieWins = (
     cookieFbc: string,
@@ -1670,7 +1672,6 @@ export class PostHog implements PostHogInterface {
         }
 
         const channel = this._facebookClickIdChannel
-        this.persistence.refreshMetaIdentifiers()
         const stored = this._getPersistedMetaIdentifier(channel)
 
         // An unset clears the store for this event only: the cookie stays, so a later event reads it again.
@@ -1719,7 +1720,6 @@ export class PostHog implements PostHogInterface {
         }
 
         const channel = this._facebookBrowserIdChannel
-        this.persistence.refreshMetaIdentifiers()
         const stored = this._getPersistedMetaIdentifier(channel)
 
         // As for $fbc, an unset applies to this event only.
@@ -1744,15 +1744,22 @@ export class PostHog implements PostHogInterface {
         return stored ? { value: stored.value, pending: !stored.delivered } : undefined
     }
 
-    private _markMetaIdentifierDelivered(channel: MetaIdentifierChannel, value: string): void {
+    private _markMetaIdentifiersDelivered(sent: SentMetaIdentifier[]): void {
         if (!this.persistence) {
             return
         }
-        this.persistence.refreshMetaIdentifiers()
-        const stored = this._getPersistedMetaIdentifier(channel)
-        if (stored?.value === value && !stored.delivered) {
-            channel.register(value, true)
+        const awaitingDelivery = ({ channel, value }: SentMetaIdentifier) => {
+            const stored = this._getPersistedMetaIdentifier(channel)
+            return stored?.value === value && !stored.delivered
         }
+        // Later callbacks in a batch find the value already delivered and skip the refresh.
+        const toConfirm = sent.filter(awaitingDelivery)
+        if (!toConfirm.length) {
+            return
+        }
+        // A sibling may have stored a newer value since this request was sent.
+        this.persistence.refreshMetaIdentifiers()
+        toConfirm.filter(awaitingDelivery).forEach(({ channel, value }) => channel.register(value, true))
     }
 
     /**
@@ -1912,6 +1919,7 @@ export class PostHog implements PostHogInterface {
                 unset: propertyUnset.indexOf(property) !== -1 || optionUnset.indexOf(property) !== -1,
             }
         }
+        this.persistence.refreshMetaIdentifiersBeforeCapture()
         const fbcCallerValue = callerValueFor(FACEBOOK_CLICK_ID)
         const fbpCallerValue = callerValueFor(FACEBOOK_BROWSER_ID)
         const metaIdentifiers = [
@@ -2034,11 +2042,14 @@ export class PostHog implements PostHogInterface {
             setTimeout(() => (this._replayDebugPropertiesPaused = false), REPLAY_DEBUG_PROPERTIES_INTERVAL_MS)
         }
 
-        const metaIdentifiersToConfirm = metaIdentifiers.filter(({ channel, update }) => {
+        const metaIdentifiersToConfirm: SentMetaIdentifier[] = []
+        metaIdentifiers.forEach(({ channel, update }) => {
             const finalValue =
                 data.$set?.[channel.property] ??
                 (isObject(data.properties?.$set) ? data.properties.$set[channel.property] : undefined)
-            return update?.pending && finalValue === update.value
+            if (update?.pending && finalValue === update.value) {
+                metaIdentifiersToConfirm.push({ channel, value: update.value })
+            }
         })
 
         this._internalEventEmitter.emit('eventCaptured', data)
@@ -2066,9 +2077,7 @@ export class PostHog implements PostHogInterface {
                       fireCallbackOnDrop: true,
                       callback: (response) => {
                           if (response.statusCode >= 200 && response.statusCode < 300) {
-                              for (const { channel, update } of metaIdentifiersToConfirm) {
-                                  this._markMetaIdentifierDelivered(channel, update!.value)
-                              }
+                              this._markMetaIdentifiersDelivered(metaIdentifiersToConfirm)
                           }
                       },
                   }
@@ -2092,6 +2101,10 @@ export class PostHog implements PostHogInterface {
             }
             this._send_retriable_request(requestOptions, transportOverride)
         }
+
+        // Consent can be granted without opt_in_capturing(), for example in another tab or by a consent manager cookie.
+        // Sending after this event keeps its rate limit token, and applies any identity change it picked up first.
+        this.featureFlags?.sendFlagCallsPendingCapture()
 
         return data
     }
@@ -4865,7 +4878,9 @@ export class PostHog implements PostHogInterface {
      *
      * @remarks
      * Enables event tracking and data persistence (cookies/localStorage) for this PostHog instance.
-     * By default, captures an `$opt_in` event unless disabled.
+     * By default, captures an `$opt_in` event unless disabled. The event is only captured when the user was not
+     * already opted in, so calling this on every page load (for example from a consent tool callback that re-applies
+     * stored consent) sends it once per user rather than once per page.
      *
      * @example
      * ```js
@@ -4933,6 +4948,13 @@ export class PostHog implements PostHogInterface {
             }
         }
 
+        const wasAlreadyGranted = this.consent.consent === ConsentStatus.GRANTED
+        if (wasAlreadyGranted) {
+            // Consent granted in another tab leaves this tab holding the cookieless sentinel, and no $opt_in capture
+            // will heal it below. Adopt the shared identity before re-enabling persistence saves the stale one over it.
+            this._syncCookielessIdentity()
+        }
+
         this.consent.optInOut(true)
         this._sync_opt_out_with_persistence()
 
@@ -4951,10 +4973,17 @@ export class PostHog implements PostHogInterface {
             this.conversations?.loadIfEnabled()
         }
 
-        // Don't capture if captureEventName is null or false
-        if (isUndefined(options?.captureEventName) || options?.captureEventName) {
+        // Don't capture if captureEventName is null or false, or if consent was already granted. Consent tools
+        // often re-apply stored consent on every page load, which would otherwise send one event per page.
+        if (!wasAlreadyGranted && (isUndefined(options?.captureEventName) || options?.captureEventName)) {
             this.capture(options?.captureEventName ?? '$opt_in', options?.captureProperties, { send_instantly: true })
         }
+
+        // Covers an opt in that captures no event. Adopt a sibling subdomain's identity first, so that a read made
+        // under the previous identity is dropped instead of reported under the new one.
+        this.persistence?.syncCookieProperties()
+        this._processCookieIdentityChange()
+        this.featureFlags?.sendFlagCallsPendingCapture()
 
         if (this.config.capture_pageview) {
             this._captureInitialPageview()

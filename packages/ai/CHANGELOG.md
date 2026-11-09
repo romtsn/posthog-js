@@ -1,5 +1,59 @@
 # posthog-ai
 
+## 8.19.0
+
+### Minor Changes
+
+- [#5625](https://github.com/PostHog/posthog-js/pull/5625) [`a93bee2`](https://github.com/PostHog/posthog-js/commit/a93bee2f32562f0f901c97d89aa8fa7e09b39cf5) Thanks [@tokerson](https://github.com/tokerson)! - Support `openai` 7 alongside 6, and type `embeddings.create` with `encoding_format: 'base64'` as returning base64 strings.
+  (2026-11-09)
+
+## 8.18.6
+
+### Patch Changes
+
+- [#5609](https://github.com/PostHog/posthog-js/pull/5609) [`eb11f00`](https://github.com/PostHog/posthog-js/commit/eb11f00d30c734d2de3a5f71aa7d814343588a9f) Thanks [@pcbeingused333](https://github.com/pcbeingused333)! - Report `$ai_reasoning_tokens` for Anthropic calls from `usage.output_tokens_details.thinking_tokens`, in the wrapper (streaming and non-streaming) and in the Claude Agent SDK processor.
+  (2026-11-09)
+
+## 8.18.5
+
+### Patch Changes
+
+- [#5556](https://github.com/PostHog/posthog-js/pull/5556) [`b63702f`](https://github.com/PostHog/posthog-js/commit/b63702f5ae225e7a4b1b8cc9e5bbbb9aa32422d9) Thanks [@eli-r-ph](https://github.com/eli-r-ph)! - Genkit: redact credentials in model messages, so a credential that a tool returns no longer reaches `$ai_input`.
+  (2026-11-05)
+
+## 8.18.4
+
+### Patch Changes
+
+- [#5563](https://github.com/PostHog/posthog-js/pull/5563) [`b1bbf31`](https://github.com/PostHog/posthog-js/commit/b1bbf31ab34b99bca0da47ee031fc7b420504f19) Thanks [@pcbeingused333](https://github.com/pcbeingused333)! - Keep the refusal text of OpenAI Responses API outputs instead of dropping it from the captured `$ai_output_choices`
+  (2026-11-05)
+
+- [#5555](https://github.com/PostHog/posthog-js/pull/5555) [`a129e9f`](https://github.com/PostHog/posthog-js/commit/a129e9f726c52aa9ab15db949c42b1292df21c84) Thanks [@smitp1402](https://github.com/smitp1402)! - Count Gemini Interactions tool-use tokens in the captured input tokens.
+  (2026-11-05)
+
+## 8.18.3
+
+### Patch Changes
+
+- [#5530](https://github.com/PostHog/posthog-js/pull/5530) [`9909fee`](https://github.com/PostHog/posthog-js/commit/9909feeefd495083690af31b4c77227c2778af2a) Thanks [@marandaneto](https://github.com/marandaneto)! - Fix loading and constructing the OpenTelemetry span processor in bundled Cloudflare Workers.
+  (2026-11-03)
+
+## 8.18.2
+
+### Patch Changes
+
+- [#5520](https://github.com/PostHog/posthog-js/pull/5520) [`af74347`](https://github.com/PostHog/posthog-js/commit/af743477efddf80180d06c09c9b3bd9b12280f07) Thanks [@bernatixer](https://github.com/bernatixer)! - Vercel AI SDK file capture: keep provider file IDs like `file-abc123` as they are instead of turning them into data URLs, use the same placeholder for an over-budget file however it was passed, and skip encoding output files in privacy mode
+  (2026-11-02)
+- Updated dependencies [[`3fbb667`](https://github.com/PostHog/posthog-js/commit/3fbb66717cd21013241fdb9b81639e2b4730ad85)]:
+  - @posthog/core@1.62.1
+
+## 8.18.1
+
+### Patch Changes
+
+- [#5496](https://github.com/PostHog/posthog-js/pull/5496) [`3611fd2`](https://github.com/PostHog/posthog-js/commit/3611fd2fab0559cb59046114493726619c8e14c2) Thanks [@bernatixer](https://github.com/bernatixer)! - Capture Vercel AI SDK file parts passed as bytes instead of recording "raw files not supported"
+  (2026-11-02)
+
 ## 8.18.0
 
 ### Minor Changes
